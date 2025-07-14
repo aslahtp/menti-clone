@@ -1,14 +1,15 @@
+/* eslint-disable no-undef */
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
-const verifyToken = require("./middlewares/jwt");
+const { verifyToken } = require("./middlewares/jwt");
 
 router.post("/signup", async (req, res) => {
     const { name, email, password, role } = req.body;
 
-    const user = await prisma.users.create({
+    await prisma.users.create({
         data: {
             name,
             email,

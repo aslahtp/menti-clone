@@ -1,5 +1,5 @@
 import { useParams } from "react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
 function StartQuiz() {
@@ -8,13 +8,27 @@ function StartQuiz() {
     const [questions, setQuestions] = useState([]);
     const [liveQuizQuestion, setLiveQuizQuestion] = useState("");
     const [liveQuizOptions, setLiveQuizOptions] = useState([]);
-    const [ws, setWs] = useState(null);
     const [isQuizStarted, setIsQuizStarted] = useState(false);
     const [isQuizEnded, setIsQuizEnded] = useState(false);
+    const [wsConnected, setWsConnected] = useState(false);
+    const wsRef = useRef(null);
 
-    const handleStartQuiz = async () => {
-        const ws = new WebSocket(`ws://localhost:3000/quiz/${quizId}`);
-        setWs(ws);
+    // Connect WebSocket on mount
+    useEffect(() => {
+        const ws = new window.WebSocket(`ws://localhost:3000/quiz/${quizId}`);
+        wsRef.current = ws;
+        ws.onopen = () => {
+            setWsConnected(true);
+            console.log("WebSocket connected");
+        };
+        ws.onclose = () => {
+            setWsConnected(false);
+            console.log("WebSocket closed");
+        };
+        ws.onerror = () => {
+            setWsConnected(false);
+            console.log("WebSocket error");
+        };
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
             console.log(data);
@@ -22,6 +36,7 @@ function StartQuiz() {
                 setLiveQuizQuestion(data.liveQuiz.title);
                 setLiveQuizOptions(data.liveQuiz.options);
                 setIsQuizStarted(true);
+                setIsQuizEnded(false); // Reset ended state on start
             }
             if (data.type === "next") {
                 setLiveQuizQuestion(data.liveQuiz.title);
@@ -32,43 +47,45 @@ function StartQuiz() {
                 setLiveQuizOptions([]);
                 setIsQuizStarted(false);
                 setIsQuizEnded(true);
-                
             }
-        }
-        ws.onopen = () => {
-            console.log("WebSocket connected");
-            ws.send(JSON.stringify({
+        };
+        // Cleanup on unmount
+        return () => {
+            ws.close();
+        };
+    }, [quizId]);
+
+    const handleStartQuiz = async () => {
+        if (wsRef.current && wsConnected) {
+            wsRef.current.send(JSON.stringify({
                 type: "start",
                 quizId: quizId,
                 token: localStorage.getItem("token")
             }));
         }
-        ws.onclose = () => {
-            console.log("WebSocket closed");
-        }
-    }
+    };
     const handleNextQuestion = () => {
-        ws.send(JSON.stringify({
-            type: "next",
-            quizId: quizId,
-            token: localStorage.getItem("token")
-        }));
-
-    }
+        if (wsRef.current && wsConnected) {
+            wsRef.current.send(JSON.stringify({
+                type: "next",
+                quizId: quizId,
+                token: localStorage.getItem("token")
+            }));
+        }
+    };
     const handleEndQuiz = () => {
-        if (ws) {
-        ws.send(JSON.stringify({
-            type: "end",
-            quizId: quizId,
-            token: localStorage.getItem("token")
-        }));
-        
-    }
+        if (wsRef.current && wsConnected) {
+            wsRef.current.send(JSON.stringify({
+                type: "end",
+                quizId: quizId,
+                token: localStorage.getItem("token")
+            }));
+        }
         setIsQuizStarted(false);
         setIsQuizEnded(true);
         setLiveQuizQuestion("");
         setLiveQuizOptions([]);
-    }
+    };
     const handleGetQuiz = async () => {
         const response = await axios.get(`http://localhost:3000/quiz/admin/${quizId}`, {
             headers: {
@@ -78,7 +95,7 @@ function StartQuiz() {
         console.log(response.data);
         setTitle(response.data.title);
         setQuestions(response.data.questions);
-    }
+    };
     useEffect(() => {
         handleGetQuiz();
     }, []);
@@ -86,13 +103,14 @@ function StartQuiz() {
         <div>
             <h1>Start Quiz {quizId}</h1>
             <h2>{title}</h2>
-            <button onClick={handleStartQuiz} disabled={isQuizStarted}>Start Quiz</button>
-            <button onClick={handleEndQuiz} disabled={!isQuizStarted || isQuizEnded}>End Quiz</button>
+            {!wsConnected && <p style={{ color: 'red' }}>WebSocket not connected. Please check your connection.</p>}
+            <button onClick={handleStartQuiz} disabled={!wsConnected || isQuizStarted}>Start Quiz</button>
+            <button onClick={handleEndQuiz} disabled={!wsConnected || !isQuizStarted || isQuizEnded}>End Quiz</button>
             <b><p>Question: {liveQuizQuestion}</p></b>
             Options: {liveQuizOptions.map((option, index) => (
                 <p key={index}>{index + 1}. {option.title}</p>
             ))}
-            <button onClick={handleNextQuestion} disabled={liveQuizQuestion === ""}>Next Question</button>
+            <button onClick={handleNextQuestion} disabled={!wsConnected || liveQuizQuestion === ""}>Next Question</button>
             <div id="questions">
                 {questions.map((question, index) => (
                     <div key={index}>

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+//import { useNavigate } from "react-router";
 import axios from "axios";
 
 function CreateQuiz() {
-    const navigate = useNavigate();
+    //const navigate = useNavigate();
     const [questions, setQuestions] = useState([]);
     const handleAddQuestion = () => {
         const title = document.getElementById("question").value;

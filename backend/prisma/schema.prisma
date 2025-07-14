@@ -35,6 +35,7 @@ model quiz {
   admin users @relation(fields: [adminId], references: [id])
   questions questions[]
   leaderboard leaderboard[]
+  
 }
 
 model questions {

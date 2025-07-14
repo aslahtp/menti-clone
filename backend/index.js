@@ -5,7 +5,7 @@ const authRoutes = require("./src/auth");
 const quizRoutes = require("./src/quiz");
 const resultRoutes = require("./src/result");
 const cors = require("cors");
-const { initializeWebSocket } = require("./src/ws");
+const { initializeWebSocket } = require("./src/connection/ws");
 
 dotenv.config();
 
@@ -14,7 +14,7 @@ const server = app.listen(process.env.PORT, () => {
     console.log(`Server is running on port ${process.env.PORT}`);
 });
 
-// Initialize WebSocket server
+
 initializeWebSocket(server);
 
 app.use(cors());

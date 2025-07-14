@@ -6,6 +6,7 @@ import DashboardUser from "./components/dashuser";
 import DashboardAdmin from "./components/dashadmin";
 import CreateQuiz from "./components/createquiz";
 import StartQuiz from "./components/startquiz";
+import JoinQuiz from "./components/joinquiz";
 
 function App() {
 
@@ -20,6 +21,7 @@ function App() {
         {localStorage.getItem("role") === "ADMIN" && <Route path="/dashboard" element={<DashboardAdmin />} />}
         {localStorage.getItem("role") === "ADMIN" && <Route path="/createquiz" element={<CreateQuiz />} />}
         {localStorage.getItem("role") === "ADMIN" && <Route path="/startquiz/:quizId" element={<StartQuiz />} />}
+        {localStorage.getItem("role") === "USER" && <Route path="/joinquiz/:quizId" element={<JoinQuiz />} />}
       </Routes>
     </BrowserRouter>
   )
