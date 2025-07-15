@@ -400,6 +400,7 @@ const messageHandlers = {
             type: "answer_submitted",
             message: "Answer recorded successfully",
             questionIndex: session.currentQuestionIndex
+
         }));
 
         // Notify admin
@@ -412,6 +413,7 @@ const messageHandlers = {
                 questionIndex: session.currentQuestionIndex
             }));
         }
+
 
         console.log(`[SUBMIT ANSWER SUCCESS] Answer from user ${decoded.id} recorded`);
     },
@@ -446,6 +448,42 @@ const messageHandlers = {
         }));
 
         console.log(`[LEAVE QUIZ SUCCESS] User ${decoded.id} left quiz`);
+    },
+
+    async get_leaderboard(ws) {
+        const connection = connectionRegistry.get(ws);
+        if (!connection || !connection.sessionId) {
+            return this.sendError(ws, "Not joined to any quiz");
+        }
+        try {
+            console.log(`[LEADERBOARD] Fetching leaderboard for quiz ${connection.sessionId}`);
+
+            // Fetch leaderboard from correct table
+            const results = await prisma.leaderboard.findMany({
+                where: { quizId: connection.sessionId },
+                orderBy: { score: 'desc' },
+                include: { user: true }
+            });
+
+            console.log(`[LEADERBOARD] Found ${results.length} results for quiz ${connection.sessionId}`);
+
+            const leaderboardData = results.map(r => ({
+                name: r.name || r.user?.name || "Anonymous",
+                score: r.score,
+                totalQuestions: r.totalQuestions
+            }));
+
+            ws.send(JSON.stringify({
+                type: "leaderboard",
+                leaderboard: leaderboardData
+            }));
+
+            console.log(`[LEADERBOARD SUCCESS] Sent leaderboard with ${leaderboardData.length} entries`);
+
+        } catch (error) {
+            console.error("[LEADERBOARD ERROR]", error);
+            this.sendError(ws, "Failed to fetch leaderboard");
+        }
     },
 
     // Utility methods

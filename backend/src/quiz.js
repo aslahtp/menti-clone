@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 const express = require("express");
 const router = express.Router();
 const { PrismaClient } = require("@prisma/client");
@@ -133,7 +134,7 @@ router.get("/admin/:quizId", async (req, res) => {
 router.post("/:quizId/submit", async (req, res) => {
     const { quizId } = req.params;
     const { answers } = req.body;
-    //console.log(quizId, answers);
+    console.log(answers);
     const total = answers.length;
     const token = req.headers.authorization;
     if (!token) {
